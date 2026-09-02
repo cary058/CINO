@@ -1,0 +1,381 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  role             String    @default("USER") // USER, VOLUNTEER, COORDINATOR, PROFESSIONAL, MODERATOR, ADMIN, SUPER_ADMIN
+  status           String    @default("ACTIVE") // ACTIVE, SUSPENDED, DELETED
+  isEmailVerified  Boolean   @default(true)
+  anonymousId      String    @unique // e.g. SINO-8F42A1
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  profile              Profile?
+  sessions             Session[]
+  consents             UserConsent[]
+  aiChats              AIChat[]
+  humanRequests        HumanSupportRequest[] @relation("UserHumanRequests")
+  humanChatsAsUser     HumanChat[]           @relation("UserHumanChats")
+  humanChatsAsHelper   HumanChat[]           @relation("HelperHumanChats")
+  humanMessages        HumanMessage[]
+  volunteerProfile     VolunteerProfile?
+  professionalProfile  ProfessionalProfile?
+  volunteerProgress    VolunteerProgress[]
+  reportsCreated       Report[]              @relation("ReporterRelation")
+  reportsReceived      Report[]              @relation("ReportedUserRelation")
+  safetyEvents         SafetyEvent[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+}
+
+model Profile {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName          String?
+  bio                  String?
+  themePreference      String   @default("NIGHT") // NIGHT, DAY, SYSTEM
+  language             String   @default("ru")
+  notificationsEnabled Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  ipHash    String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model UserConsent {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consentType     String    // TERMS, PRIVACY, AI_ACKNOWLEDGEMENT, LIMITATIONS, HUMAN_RULES
+  documentVersion String    @default("1.0")
+  ipHash          String?
+  withdrawnAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([consentType])
+}
+
+model AIChat {
+  id        String       @id @default(uuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String       @default("Новый разговор")
+  status    String       @default("ACTIVE") // ACTIVE, ARCHIVED, DELETED
+  mode      String       @default("LISTENING") // LISTENING, REFLECTION, ADVICE, CASUAL_SUPPORT
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  messages  AIMessage[]
+
+  @@index([userId])
+}
+
+model AIMessage {
+  id             String   @id @default(uuid())
+  chatId         String
+  chat           AIChat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderType     String   // USER, AI, SYSTEM
+  content        String
+  safetyCategory String?  // NONE, GENERAL_DISTRESS, ANXIETY, PANIC, SELF_HARM, SUICIDE, VIOLENCE, etc.
+  safetyLevel    String?  // NONE, LOW, MODERATE, HIGH, CRITICAL
+  createdAt      DateTime @default(now())
+
+  @@index([chatId])
+}
+
+model HumanSupportRequest {
+  id                     String    @id @default(uuid())
+  userId                 String
+  user                   User      @relation("UserHumanRequests", fields: [userId], references: [id], onDelete: Cascade)
+  reason                 String?
+  category               String    @default("DONT_KNOW") // JUST_TALK, NEED_HUMAN, NEED_SUPPORT, DONT_KNOW, OTHER
+  priority               String    @default("MEDIUM")    // LOW, MEDIUM, HIGH, CRITICAL
+  safetyLevel            String    @default("NONE")      // NONE, LOW, MODERATE, HIGH, CRITICAL
+  status                 String    @default("REQUESTED") // REQUESTED, QUEUED, UNDER_REVIEW, ASSIGNED, ACTIVE, TRANSFERRED, CLOSED, CANCELLED
+  assignedCoordinatorId String?
+  assignedHumanId        String?
+  assignedHumanRole      String?   // VOLUNTEER, PROFESSIONAL
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  closedAt               DateTime?
+
+  chat                   HumanChat?
+  internalNotes          InternalNote[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([assignedCoordinatorId])
+  @@index([assignedHumanId])
+}
+
+model HumanChat {
+  id         String               @id @default(uuid())
+  requestId  String               @unique
+  request    HumanSupportRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                 @relation("UserHumanChats", fields: [userId], references: [id], onDelete: Cascade)
+  helperId   String?
+  helper     User?                @relation("HelperHumanChats", fields: [helperId], references: [id])
+  helperRole String               @default("COORDINATOR") // COORDINATOR, VOLUNTEER, PROFESSIONAL
+  status     String               @default("ACTIVE")      // ACTIVE, TRANSFERRED, CLOSED
+  createdAt  DateTime             @default(now())
+  closedAt   DateTime?
+  messages   HumanMessage[]
+
+  @@index([userId])
+  @@index([helperId])
+}
+
+model HumanMessage {
+  id         String    @id @default(uuid())
+  chatId     String
+  chat       HumanChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderRole String    // USER, COORDINATOR, VOLUNTEER, PROFESSIONAL, SYSTEM
+  content    String
+  isRead     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([chatId])
+  @@index([senderId])
+}
+
+model InternalNote {
+  id         String              @id @default(uuid())
+  requestId  String
+  request    HumanSupportRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId   String
+  authorRole String              // COORDINATOR, ADMIN, SUPER_ADMIN
+  content    String
+  createdAt  DateTime            @default(now())
+
+  @@index([requestId])
+}
+
+model VolunteerProfile {
+  id                       String    @id @default(uuid())
+  userId                   String    @unique
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status                   String    @default("PENDING") // PENDING, UNDER_REVIEW, TRAINING, APPROVED, REJECTED, SUSPENDED
+  availability             String    @default("OFFLINE") // AVAILABLE, BUSY, OFFLINE, PAUSED
+  maxActiveConversations   Int       @default(2)
+  activeConversationsCount Int       @default(0)
+  fullName                 String?
+  education                String?
+  university               String?
+  course                   String?
+  experience               String?
+  motivation               String?
+  languages                String    @default("ru")
+  approvedBy               String?
+  approvedAt               DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+}
+
+model ProfessionalProfile {
+  id                       String    @id @default(uuid())
+  userId                   String    @unique
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName              String
+  education                String
+  qualification            String
+  specializations          String?
+  registrationIdentifier   String?
+  verificationStatus       String    @default("PENDING") // PENDING, VERIFIED, REJECTED, SUSPENDED, EXPIRED
+  verifiedBy               String?
+  verifiedAt               DateTime?
+  availability             String    @default("OFFLINE") // AVAILABLE, BUSY, OFFLINE, PAUSED
+  maxActiveConversations   Int       @default(3)
+  activeConversationsCount Int       @default(0)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+}
+
+model TrainingCourse {
+  id          String           @id @default(uuid())
+  title       String
+  description String
+  order       Int              @default(1)
+  modules     TrainingModule[]
+}
+
+model TrainingModule {
+  id        String             @id @default(uuid())
+  courseId  String
+  course    TrainingCourse     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int
+  content   String
+  quizJson  String             // JSON containing questions, options, and correct answers
+  attempts  TrainingAttempt[]
+}
+
+model TrainingAttempt {
+  id        String         @id @default(uuid())
+  userId    String
+  moduleId  String
+  module    TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  score     Int
+  passed    Boolean
+  createdAt DateTime       @default(now())
+
+  @@index([userId])
+  @@index([moduleId])
+}
+
+model VolunteerProgress {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedModules  Int      @default(0)
+  totalModules      Int      @default(10)
+  trainingCompleted Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId])
+}
+
+model Report {
+  id                  String             @id @default(uuid())
+  reporterId          String
+  reporter            User               @relation("ReporterRelation", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUserId      String?
+  reportedUser        User?              @relation("ReportedUserRelation", fields: [reportedUserId], references: [id])
+  conversationId      String?
+  reason              String             // OFFENSE, THREAT, SEXUAL, BOUNDARIES, HARMFUL_ADVICE, PRIVACY_BREACH, FRAUD, OTHER
+  description         String
+  status              String             @default("OPEN") // OPEN, UNDER_REVIEW, RESOLVED, DISMISSED
+  assignedModeratorId String?
+  resolution          String?
+  createdAt           DateTime           @default(now())
+  resolvedAt          DateTime?
+  actions             ModerationAction[]
+
+  @@index([reporterId])
+  @@index([status])
+}
+
+model ModerationAction {
+  id           String   @id @default(uuid())
+  reportId     String?
+  report       Report?  @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  moderatorId  String
+  targetUserId String
+  actionType   String   // WARNING, TEMPORARY_RESTRICTION, SUSPENSION, CASE_TRANSFER, DISMISS
+  reason       String
+  createdAt    DateTime @default(now())
+
+  @@index([targetUserId])
+  @@index([moderatorId])
+}
+
+model SafetyEvent {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  source         String    @default("AI_CHAT") // AI_CHAT, COORDINATOR_CHAT, HUMAN_CHAT, USER_REPORT
+  category       String    // SUICIDE, SELF_HARM, VIOLENCE, PSYCHOSIS, PANIC, ABUSE, MEDICAL_EMERGENCY, OTHER
+  riskLevel      String    @default("LOW")     // NONE, LOW, MODERATE, HIGH, CRITICAL
+  status         String    @default("OPEN")    // OPEN, ACKNOWLEDGED, ESCALATED, RESOLVED
+  actionTaken    String?
+  handledBy      String?
+  handledAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([userId])
+  @@index([riskLevel])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("SYSTEM") // AI_REPLY, COORDINATOR_ACCEPTED, HUMAN_ASSIGNED, HUMAN_MESSAGE, REPORT_UPDATE, TRAINING_UPDATE, SYSTEM
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model CrisisResource {
+  id           String   @id @default(uuid())
+  country      String   @default("KZ") // KZ, GLOBAL
+  language     String   @default("ru")
+  resourceType String   @default("HOTLINE") // HOTLINE, EMERGENCY, ONLINE_CHAT, CENTER
+  name         String
+  phone        String?
+  url          String?
+  description  String
+  isActive     Boolean  @default(true)
+  order        Int      @default(1)
+  createdAt    DateTime @default(now())
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String?
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  action      String   // LOGIN, LOGOUT, VIEW_SENSITIVE_CHAT, ASSIGN_VOLUNTEER, TRANSFER_CHAT, SUSPEND_USER, VERIFY_PROFESSIONAL, SAFETY_ESCALATION, etc.
+  targetType  String?
+  targetId    String?
+  ipHash      String?
+  metadata    String?  // JSON string
+  createdAt   DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Invitation {
+  id        String    @id @default(uuid())
+  email     String
+  role      String    // VOLUNTEER, COORDINATOR, PROFESSIONAL, MODERATOR, ADMIN
+  token     String    @unique
+  createdBy String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
+}

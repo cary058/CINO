@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  sino-app:
+    build: .
+    container_name: sino_web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://sino_user:sino_password@postgres:5432/sino_db?schema=public
+      - SESSION_SECRET=change-this-to-a-very-long-and-secure-random-string-min-32-chars
+      - AI_PROVIDER=mock
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sino_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sino_user
+      POSTGRES_PASSWORD: sino_password
+      POSTGRES_DB: sino_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
