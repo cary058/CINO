@@ -38,6 +38,8 @@ export default function PsychologistDashboardPage() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
+  const [availabilityMessage, setAvailabilityMessage] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -101,15 +103,27 @@ export default function PsychologistDashboardPage() {
   }, [selectedChatId]);
 
   const handleStatusChange = async (status: AvailabilityStatus) => {
-    setAvailability(status);
+    const previousStatus = availability;
+    setIsSavingAvailability(true);
+    setAvailabilityMessage("");
     try {
-      await fetch("/api/professional/status", {
+      const res = await fetch("/api/professional/status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ availability: status }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Статус не удалось сохранить.");
+
+      setAvailability(data.professional.availability);
+      setProProfile(data.professional);
+      setAvailabilityMessage("Статус сохранён и будет виден направляющему.");
     } catch (err) {
       console.error("Error updating pro status:", err);
+      setAvailability(previousStatus);
+      setAvailabilityMessage(err instanceof Error ? err.message : "Не удалось сохранить статус. Попробуйте ещё раз.");
+    } finally {
+      setIsSavingAvailability(false);
     }
   };
 
@@ -175,18 +189,21 @@ export default function PsychologistDashboardPage() {
           {/* Availability Status */}
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/10">
+              <span className="px-2 text-purple-200/70">Статус:</span>
               <button
                 onClick={() => handleStatusChange("AVAILABLE")}
+                disabled={isSavingAvailability || !proProfile}
                 className={`px-3 py-1 rounded-xl transition-all ${
                   availability === "AVAILABLE"
                     ? "bg-purple-600 text-white font-semibold shadow-md"
                     : "text-purple-200/70 hover:text-white"
                 }`}
               >
-                На приёме (Онлайн)
+                Свободен
               </button>
               <button
                 onClick={() => handleStatusChange("BUSY")}
+                disabled={isSavingAvailability || !proProfile}
                 className={`px-3 py-1 rounded-xl transition-all ${
                   availability === "BUSY"
                     ? "bg-amber-600 text-white font-semibold"
@@ -197,6 +214,7 @@ export default function PsychologistDashboardPage() {
               </button>
               <button
                 onClick={() => handleStatusChange("OFFLINE")}
+                disabled={isSavingAvailability || !proProfile}
                 className={`px-3 py-1 rounded-xl transition-all ${
                   availability === "OFFLINE"
                     ? "bg-white/20 text-white font-semibold"
@@ -206,6 +224,11 @@ export default function PsychologistDashboardPage() {
                 Не на смене
               </button>
             </div>
+            {availabilityMessage && (
+              <span role="status" className={`max-w-48 ${availabilityMessage.includes("сохранён") ? "text-emerald-300" : "text-amber-200"}`}>
+                {availabilityMessage}
+              </span>
+            )}
             <a
               href="/"
               className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-blue-200 transition-colors"
@@ -303,3 +326,4 @@ export default function PsychologistDashboardPage() {
     </main>
   );
 }
+
