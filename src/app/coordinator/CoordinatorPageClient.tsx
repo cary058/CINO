@@ -53,6 +53,8 @@ interface Professional {
   userId: string;
   displayName: string;
   qualification: string;
+  verificationStatus: string;
+  availability: "AVAILABLE" | "BUSY" | "OFFLINE" | "PAUSED";
   user: {
     id: string;
     anonymousId: string;
@@ -76,7 +78,7 @@ export default function CoordinatorPage() {
         const data = await res.json();
         setRequests(data.requests || []);
         setVolunteers(data.availableVolunteers || []);
-        setProfessionals(data.availableProfessionals || []);
+        setProfessionals(data.professionals || []);
         if (data.requests?.length > 0 && !selectedRequest) {
           setSelectedRequest(data.requests[0]);
         }
@@ -90,6 +92,8 @@ export default function CoordinatorPage() {
 
   useEffect(() => {
     loadQueue();
+    const refreshTimer = window.setInterval(loadQueue, 10000);
+    return () => window.clearInterval(refreshTimer);
   }, []);
 
   const handleAssign = async (helperUserId: string, helperRole: "VOLUNTEER" | "PROFESSIONAL") => {
@@ -318,11 +322,11 @@ export default function CoordinatorPage() {
                     <div className="space-y-2 p-3.5 rounded-2xl bg-[#142347]/60 border border-white/10 text-xs">
                       <div className="flex items-center gap-1.5 text-purple-300 font-semibold mb-1">
                         <Stethoscope className="w-4 h-4" />
-                        <span>Верифицированные психологи ({professionals.length})</span>
+                        <span>Психологи ({professionals.length})</span>
                       </div>
 
                       {professionals.length === 0 ? (
-                        <p className="text-blue-300/50 py-2">Нет психологов онлайн.</p>
+                        <p className="text-blue-300/50 py-2">Пока нет подключённых психологов.</p>
                       ) : (
                         <div className="space-y-2">
                           {professionals.map((pro) => (
@@ -330,13 +334,23 @@ export default function CoordinatorPage() {
                               <div>
                                 <span className="font-bold text-white block">{pro.displayName}</span>
                                 <span className="text-[10px] text-purple-200/70 truncate max-w-[140px] block">{pro.qualification}</span>
+                                <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] ${
+                                  pro.availability === "AVAILABLE"
+                                    ? "bg-emerald-500/15 text-emerald-300"
+                                    : pro.availability === "BUSY"
+                                      ? "bg-amber-500/15 text-amber-300"
+                                      : "bg-white/10 text-blue-200/60"
+                                }`}>
+                                  {pro.verificationStatus === "DEMO_VERIFIED" ? "Демо · " : ""}
+                                  {pro.availability === "AVAILABLE" ? "Свободен" : pro.availability === "BUSY" ? "Занят" : pro.availability === "PAUSED" ? "Пауза" : "Не на смене"}
+                                </span>
                               </div>
                               <button
                                 onClick={() => handleAssign(pro.userId, "PROFESSIONAL")}
-                                disabled={isAssigning}
-                                className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-semibold transition-colors"
+                                disabled={isAssigning || pro.availability !== "AVAILABLE"}
+                                className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed text-white text-[11px] font-semibold transition-colors"
                               >
-                                Назначить
+                                {pro.availability === "AVAILABLE" ? "Назначить" : "Недоступен"}
                               </button>
                             </div>
                           ))}
@@ -396,3 +410,4 @@ export default function CoordinatorPage() {
     </main>
   );
 }
+
