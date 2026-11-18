@@ -191,7 +191,7 @@ export function HumanChatView({ user }: HumanChatViewProps) {
           <div className="space-y-1 max-w-md">
             <h3 className="text-base font-bold text-white">Пока никто не подключён</h3>
             <p className="text-xs text-blue-200/80 leading-relaxed">
-              Чтобы начать разговор с живым человеком поддержки или психологом, перейдите во вкладку «Чат с направляющим» и создайте обращение.
+              Сначала создайте обращение в чате с направляющим. Когда он назначит волонтёра или проверенного психолога, их переписка появится здесь.
             </p>
           </div>
         </div>
@@ -255,3 +255,4 @@ export function HumanChatView({ user }: HumanChatViewProps) {
     </div>
   );
 }
+
