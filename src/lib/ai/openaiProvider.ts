@@ -1,6 +1,7 @@
 import { AIProvider, AIGenerationRequest, AIGenerationResponse, AISafetyAnalysis } from "./types";
 import { analyzeMessageSafety } from "./safetyLayer";
 import { buildSystemPrompt } from "./promptEngine";
+import { buildCrisisMessage, buildSafeFallback } from "./safetyResponses";
 import { AIMode } from "@/types";
 
 export class OpenAIProvider implements AIProvider {
@@ -25,7 +26,7 @@ export class OpenAIProvider implements AIProvider {
 
     if (safety.isCrisis && (safety.riskLevel === "CRITICAL" || safety.riskLevel === "HIGH")) {
       return {
-        content: `Слышу, как тяжело и больно тебе прямо сейчас. Твоя безопасность превыше всего. Пожалуйста, не оставайся наедине с этой болью.\n\nПозвони в службу 112 или на бесплатную горячую линию доверия 150 / 111 (Казахстан). Ты также можешь запросить живого человека в СИНО.`,
+        content: buildCrisisMessage(safety),
         safety,
         detectedMode: mode,
         crisisData: {
@@ -38,7 +39,7 @@ export class OpenAIProvider implements AIProvider {
 
     if (!this.apiKey) {
       return {
-        content: `Я рядом и слушаю тебя. Расскажи подробнее, что происходит на душе.`,
+        content: buildSafeFallback(safety),
         safety,
         detectedMode: mode,
       };
@@ -84,10 +85,11 @@ export class OpenAIProvider implements AIProvider {
     } catch (err: any) {
       console.error("OpenAI provider failed, fallback to safe message:", err.message);
       return {
-        content: `Я тебя внимательно слушаю. Расскажи, о чем ты сейчас думаешь?`,
+        content: buildSafeFallback(safety),
         safety,
         detectedMode: mode,
       };
     }
   }
 }
+
