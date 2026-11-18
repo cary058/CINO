@@ -9,8 +9,8 @@ async function main() {
   }
   console.log('🌱 Seeding SINO database...');
 
-  // Common dev password: "Password123!"
-  const passwordHash = await bcrypt.hash('Password123!', 10);
+  const seedPassword = process.env.SEED_DEMO_PASSWORD;
+  const passwordHash = seedPassword ? await bcrypt.hash(seedPassword, 10) : null;
 
   // 1. System Settings
   const settings = [
@@ -309,6 +309,17 @@ async function main() {
     }
   }
 
+  // Never add shared sample accounts to a production database.
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Production demo: skipping sample accounts; use the one-time admin bootstrap instead.');
+    return;
+  }
+
+  if (!passwordHash) {
+    console.log('Set SEED_DEMO_PASSWORD locally to create development sample accounts; skipping accounts.');
+    return;
+  }
+
   // 4. Seed Accounts
   // A. Admin Bootstrap (SUPER_ADMIN)
   const adminUser = await prisma.user.upsert({
@@ -570,7 +581,7 @@ async function main() {
   }
 
   console.log('✅ Seed completed successfully!');
-  console.log('--- Development Accounts (Password: Password123!) ---');
+  console.log('--- Local development accounts created with SEED_DEMO_PASSWORD ---');
   console.log('👑 Admin:        admin@sino.kz');
   console.log('🧭 Coordinator:  coordinator@sino.kz');
   console.log('🤝 Volunteer 1:  volunteer1@sino.kz');
