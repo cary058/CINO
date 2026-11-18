@@ -51,8 +51,9 @@ export default function AdminPage() {
   // Search & Filter
   const [userSearch, setUserSearch] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("COORDINATOR");
+  const [inviteRole, setInviteRole] = useState("PROFESSIONAL");
   const [inviteResult, setInviteResult] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState("");
 
   const loadData = async () => {
     setIsLoading(true);
@@ -168,6 +169,7 @@ export default function AdminPage() {
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail.trim()) return;
+    setInviteError("");
     try {
       const res = await fetch("/api/admin/invitations", {
         method: "POST",
@@ -179,9 +181,13 @@ export default function AdminPage() {
         setInviteResult(data.inviteLink);
         setInviteEmail("");
         loadData();
+      } else {
+        const data = await res.json();
+        setInviteError(data.error || "Не удалось создать приглашение.");
       }
     } catch (err) {
       console.error("Invite error:", err);
+      setInviteError("Ошибка сети при создании приглашения.");
     }
   };
 
@@ -584,13 +590,20 @@ export default function AdminPage() {
                     <select
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#101c38] border border-white/10 text-white focus:outline-none focus:border-blue-400"
+                      disabled={process.env.NEXT_PUBLIC_DEMO_MODE === "true"}
+                      className="w-full px-3 py-2 rounded-xl bg-[#101c38] border border-white/10 text-white focus:outline-none focus:border-blue-400 disabled:opacity-70"
                     >
-                      <option value="COORDINATOR">COORDINATOR (Направляющий)</option>
-                      <option value="VOLUNTEER">VOLUNTEER (Волонтёр)</option>
-                      <option value="PROFESSIONAL">PROFESSIONAL (Психолог)</option>
-                      <option value="MODERATOR">MODERATOR (Модератор)</option>
-                      <option value="ADMIN">ADMIN (Администратор)</option>
+                      {process.env.NEXT_PUBLIC_DEMO_MODE === "true" ? (
+                        <option value="PROFESSIONAL">Психолог</option>
+                      ) : (
+                        <>
+                          <option value="COORDINATOR">COORDINATOR (Направляющий)</option>
+                          <option value="VOLUNTEER">VOLUNTEER (Волонтёр)</option>
+                          <option value="PROFESSIONAL">PROFESSIONAL (Психолог)</option>
+                          <option value="MODERATOR">MODERATOR (Модератор)</option>
+                          <option value="ADMIN">ADMIN (Администратор)</option>
+                        </>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -601,6 +614,9 @@ export default function AdminPage() {
                   Сгенерировать приглашение
                 </button>
               </form>
+
+              <p className="max-w-lg text-[11px] text-blue-200/60">Ссылка не отправляется автоматически: её нужно передать приглашённому человеку. Профиль психолога сначала будет проверен.</p>
+              {inviteError && <p role="alert" className="max-w-lg text-xs text-amber-200">{inviteError}</p>}
 
               {inviteResult && (
                 <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 select-all">
@@ -648,3 +664,4 @@ export default function AdminPage() {
     </main>
   );
 }
+
