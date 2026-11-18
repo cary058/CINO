@@ -89,7 +89,7 @@ export function Sidebar({
           >
             <div className="flex items-center gap-3">
               <Heart className="w-4 h-4 text-blue-200" />
-              <span>Чат с психологом</span>
+              <span>Чат с человеком</span>
             </div>
           </button>
         </nav>
@@ -111,14 +111,6 @@ export function Sidebar({
             <Shield className="w-4 h-4 text-blue-300/80" />
             <span>Правила и безопасность</span>
           </button>
-
-          <a
-            href="/volunteer/apply"
-            className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-xs text-sky-200/80 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <HeartHandshake className="w-4 h-4 text-sky-300" />
-            <span>Хочу помогать</span>
-          </a>
 
           {/* Role-specific Dashboards */}
           {user && hasPermission(user.role, "coordinator:dashboard") && (
@@ -241,3 +233,4 @@ export function Sidebar({
     </>
   );
 }
+
