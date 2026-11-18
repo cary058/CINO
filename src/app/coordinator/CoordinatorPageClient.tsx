@@ -68,6 +68,8 @@ export default function CoordinatorPage() {
   const [selectedRequest, setSelectedRequest] = useState<HumanRequest | null>(null);
   const [noteText, setNoteText] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
+  const [assignmentMessage, setAssignmentMessage] = useState("");
+  const [assignmentMessageIsError, setAssignmentMessageIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadQueue = async () => {
@@ -98,7 +100,14 @@ export default function CoordinatorPage() {
 
   const handleAssign = async (helperUserId: string, helperRole: "VOLUNTEER" | "PROFESSIONAL") => {
     if (!selectedRequest) return;
+    if (selectedRequest.user.id === helperUserId) {
+      setAssignmentMessage("Нельзя назначить человека поддержки на собственное обращение. Для проверки нужен отдельный аккаунт пользователя.");
+      setAssignmentMessageIsError(true);
+      return;
+    }
+
     setIsAssigning(true);
+    setAssignmentMessage("");
     try {
       const res = await fetch("/api/coordinator/assign", {
         method: "POST",
@@ -109,11 +118,16 @@ export default function CoordinatorPage() {
           helperRole,
         }),
       });
-      if (res.ok) {
-        loadQueue();
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Не удалось назначить психолога.");
+
+      setAssignmentMessage("Психолог назначен. Обращение обновлено.");
+      setAssignmentMessageIsError(false);
+      await loadQueue();
     } catch (err) {
       console.error("Assign error:", err);
+      setAssignmentMessage(err instanceof Error ? err.message : "Ошибка сети при назначении. Попробуйте ещё раз.");
+      setAssignmentMessageIsError(true);
     } finally {
       setIsAssigning(false);
     }
@@ -269,6 +283,7 @@ export default function CoordinatorPage() {
                             : "bg-white/10 text-blue-200/60"
                       }`}>
                         {pro.verificationStatus === "DEMO_VERIFIED" ? "Демо · " : ""}
+                        {pro.verificationStatus === "PENDING" ? "На проверке · " : ""}
                         {pro.availability === "AVAILABLE" ? "Свободен" : pro.availability === "BUSY" ? "Занят" : pro.availability === "PAUSED" ? "Пауза" : "Не на смене"}
                       </span>
                     </div>
@@ -312,6 +327,12 @@ export default function CoordinatorPage() {
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider">
                     Назначить человека поддержки
                   </h4>
+
+                  {assignmentMessage && (
+                    <p role="status" className={`rounded-xl px-3 py-2 text-xs ${assignmentMessageIsError ? "bg-amber-500/10 text-amber-200" : "bg-emerald-500/10 text-emerald-200"}`}>
+                      {assignmentMessage}
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Volunteers Section */}
@@ -370,15 +391,16 @@ export default function CoordinatorPage() {
                                       : "bg-white/10 text-blue-200/60"
                                 }`}>
                                   {pro.verificationStatus === "DEMO_VERIFIED" ? "Демо · " : ""}
+                                  {pro.verificationStatus === "PENDING" ? "На проверке · " : ""}
                                   {pro.availability === "AVAILABLE" ? "Свободен" : pro.availability === "BUSY" ? "Занят" : pro.availability === "PAUSED" ? "Пауза" : "Не на смене"}
                                 </span>
                               </div>
                               <button
                                 onClick={() => handleAssign(pro.userId, "PROFESSIONAL")}
-                                disabled={isAssigning || pro.availability !== "AVAILABLE"}
+                                disabled={isAssigning || pro.availability !== "AVAILABLE" || !["VERIFIED", "DEMO_VERIFIED"].includes(pro.verificationStatus)}
                                 className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed text-white text-[11px] font-semibold transition-colors"
                               >
-                                {pro.availability === "AVAILABLE" ? "Назначить" : "Недоступен"}
+                                {! ["VERIFIED", "DEMO_VERIFIED"].includes(pro.verificationStatus) ? "Ожидает проверки" : pro.availability === "AVAILABLE" ? "Назначить" : pro.availability === "BUSY" ? "Психолог занят" : "Не на смене"}
                               </button>
                             </div>
                           ))}
