@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAuditEvent } from "@/lib/audit";
 import { realtimeBus } from "@/lib/realtime/eventBus";
+import { hasPermission } from "@/lib/rbac";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,6 +23,14 @@ export async function POST(req: NextRequest) {
 
     if (!request) {
       return NextResponse.json({ error: "Обращение не найдено" }, { status: 404 });
+    }
+
+    const isCoordinator = hasPermission(user.role, "coordinator:dashboard");
+    const isAssignedHelper = request.assignedHumanId === user.id &&
+      ((request.assignedHumanRole === "VOLUNTEER" && hasPermission(user.role, "volunteer:dashboard")) ||
+       (request.assignedHumanRole === "PROFESSIONAL" && hasPermission(user.role, "professional:dashboard")));
+    if (!isCoordinator && !isAssignedHelper) {
+      return NextResponse.json({ error: "Доступ запрещен" }, { status: 403 });
     }
 
     // Create safety event
@@ -73,3 +82,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Не удалось выполнить эскалацию" }, { status: 500 });
   }
 }
+
