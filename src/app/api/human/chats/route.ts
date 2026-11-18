@@ -46,6 +46,7 @@ export async function GET() {
         where: {
           userId: user.id,
           status: "ACTIVE",
+          helperId: { not: null },
         },
         include: {
           helper: {
@@ -74,3 +75,4 @@ export async function GET() {
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
+
