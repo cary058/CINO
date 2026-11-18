@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, generateAnonymousId, createSessionToken, setSessionCookie } from "@/lib/auth";
+import { hashPassword, generateAnonymousId, createSessionToken, setSessionCookie, isStaffAccessAllowed } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { logAuditEvent } from "@/lib/audit";
 
@@ -18,6 +18,10 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { email, password, displayName, consents } = body;
+
+    if (email && process.env.NODE_ENV === "production" && isStaffAccessAllowed(String(email))) {
+      return NextResponse.json({ error: "Для этого адреса вход создаёт администратор." }, { status: 403 });
+    }
 
     if (!email || !password) {
       return NextResponse.json(
