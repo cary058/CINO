@@ -7,7 +7,7 @@ This guide is for a first public deployment on a Linux server. The application c
 - Place the application and the PostgreSQL database in a Kazakhstan data center. Article 12 of Kazakhstan's Personal Data Law says databases containing personal data are stored in Kazakhstan. Confirm the provider's actual data-center location and backup location.
 - The repository's default Prisma schema is SQLite for local development. The production container explicitly generates its client from `prisma/schema.postgres.prisma`.
 - Keep `AI_PROVIDER=mock` for a private pilot. The Gemini and OpenAI providers send conversation text to those external services; review their data-processing terms and the project's consent/privacy language before enabling either.
-- Do not run `npm run prisma:seed` in production. It creates shared demo accounts with a known password. The command refuses to run when `NODE_ENV=production`.
+- Production startup skips shared demo accounts. Use the one-time bootstrap environment variables for the single staff account; use a unique password of at least 16 characters, then remove `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` after it succeeds. Keep `STAFF_ACCESS_EMAILS` set to the approved staff addresses.
 - This prototype has not had an independent security, privacy, or clinical-safety review. Complete those reviews and define staffed crisis-response procedures before inviting the public.
 
 ## Server and domain
