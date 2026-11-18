@@ -2,11 +2,12 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/rbac";
 
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    if (!user) {
+    if (!user || !hasPermission(user.role, "volunteer:dashboard")) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
@@ -28,7 +29,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
+    if (!user || !hasPermission(user.role, "volunteer:dashboard")) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
@@ -58,3 +59,4 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Не удалось обновить статус" }, { status: 500 });
   }
 }
+
