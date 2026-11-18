@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/rbac";
 
 export async function GET(
   req: NextRequest,
@@ -59,7 +60,7 @@ export async function GET(
     const isParticipant =
       chat.userId === user.id ||
       chat.helperId === user.id ||
-      ["COORDINATOR", "ADMIN", "SUPER_ADMIN"].includes(user.role);
+      hasPermission(user.role, "coordinator:dashboard");
 
     if (!isParticipant) {
       return NextResponse.json({ error: "Доступ запрещен" }, { status: 403 });
@@ -71,3 +72,4 @@ export async function GET(
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
+
