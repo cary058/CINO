@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "node scripts/check-prisma-schemas.js && prisma generate --schema=prisma/schema.postgres.prisma && next build",
     "start": "next start",
-    "start:demo": "npm run prisma:push:production && npm run prisma:seed && npm run telegram:set-webhook && next start -H 0.0.0.0",
+    "start:demo": "npm run prisma:push:production && npm run prisma:seed && node scripts/bootstrap-admin-if-configured.js && npm run telegram:set-webhook && next start -H 0.0.0.0",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
