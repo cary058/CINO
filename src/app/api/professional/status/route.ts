@@ -59,7 +59,8 @@ export async function PATCH(req: NextRequest) {
 
     const isVerified = pro.verificationStatus === "VERIFIED";
     const isDemoVerified = pro.verificationStatus === "DEMO_VERIFIED" && process.env.DEMO_MODE === "true";
-    if (!isVerified && !isDemoVerified) {
+    const isPendingReview = pro.verificationStatus === "PENDING";
+    if (!isVerified && !isDemoVerified && !isPendingReview) {
       return NextResponse.json(
         { error: "Вы не можете изменить статус доступности до верификации квалификации администратором." },
         { status: 403 }
