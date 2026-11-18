@@ -6,6 +6,10 @@ import { logAuditEvent } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.NODE_ENV === "production" && process.env.DEMO_MODE === "true") {
+      return NextResponse.json({ error: "Приём заявок временно закрыт. Роли назначает администратор." }, { status: 403 });
+    }
+
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
@@ -83,3 +87,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Не удалось отправить заявку" }, { status: 500 });
   }
 }
+
