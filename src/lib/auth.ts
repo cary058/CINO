@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import { SessionUser, UserRole, UserStatus } from "@/types";
+import { isStaff } from "./rbac";
 
 function getJwtSecret() {
   const secret = process.env.SESSION_SECRET;
@@ -15,6 +16,20 @@ function getJwtSecret() {
   return new TextEncoder().encode(secret || "sino-local-development-secret-not-for-production");
 }
 const COOKIE_NAME = "sino_session";
+
+function allowedStaffEmails(): Set<string> {
+  return new Set(
+    (process.env.STAFF_ACCESS_EMAILS || "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+export function isStaffAccessAllowed(email: string): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  return allowedStaffEmails().has(email.trim().toLowerCase());
+}
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -80,10 +95,15 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
     const hasAcceptedHumanRules = user.consents.some((c) => c.consentType === "HUMAN_RULES");
 
+    const effectiveRole =
+      isStaff(user.role as UserRole) && !isStaffAccessAllowed(user.email)
+        ? "USER"
+        : (user.role as UserRole);
+
     return {
       id: user.id,
       email: user.email,
-      role: user.role as UserRole,
+      role: effectiveRole,
       status: user.status as UserStatus,
       anonymousId: user.anonymousId,
       displayName: user.profile?.displayName || "Пользователь",
