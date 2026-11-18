@@ -6,6 +6,7 @@ import { getAIProvider } from "@/lib/ai/factory";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { realtimeBus } from "@/lib/realtime/eventBus";
 import { AIMode } from "@/types";
+import { analyzeMessageSafety } from "@/lib/ai/safetyLayer";
 
 export async function POST(
   req: NextRequest,
@@ -71,20 +72,38 @@ export async function POST(
         content: m.content,
       }));
 
-    // AI Generation
-    const aiProvider = getAIProvider();
-    const aiResponse = await aiProvider.generateResponse({
-      userMessage: userMessageContent,
-      history,
-      requestedMode: currentMode,
-    });
-
-    // Save user message
+    // Persist the user's message before calling an external provider. If the
+    // provider times out, the conversation still survives refreshes/devices.
     const savedUserMsg = await prisma.aIMessage.create({
       data: {
         chatId: chat.id,
         senderType: "USER",
         content: userMessageContent,
+      },
+    });
+
+    // AI Generation. Keep the conversation usable when a provider is down.
+    let aiResponse;
+    try {
+      const aiProvider = getAIProvider();
+      aiResponse = await aiProvider.generateResponse({
+        userMessage: userMessageContent,
+        history,
+        requestedMode: currentMode,
+      });
+    } catch (providerError) {
+      console.error("AI provider failed after user message was saved:", providerError);
+      const safety = analyzeMessageSafety(userMessageContent);
+      aiResponse = {
+        content: "Я получил твоё сообщение и сохранил его. Сейчас не получается подготовить ответ. Попробуй немного позже — написанное останется в этом диалоге.",
+        safety,
+        detectedMode: currentMode,
+      };
+    }
+
+    await prisma.aIMessage.update({
+      where: { id: savedUserMsg.id },
+      data: {
         safetyCategory: aiResponse.safety.category,
         safetyLevel: aiResponse.safety.riskLevel,
       },
@@ -153,3 +172,4 @@ export async function POST(
     );
   }
 }
+
