@@ -34,7 +34,6 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [currentMode, setCurrentMode] = useState<AIMode>("LISTENING");
   const [showCrisisBanner, setShowCrisisBanner] = useState(false);
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -53,7 +52,6 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
         setThreads(data.chats || []);
         if (data.chats?.length > 0 && !activeThreadId) {
           setActiveThreadId(data.chats[0].id);
-          setCurrentMode(data.chats[0].mode || "LISTENING");
         } else if (data.chats?.length === 0) {
           // Auto create first chat if none exists
           createNewChat();
@@ -78,7 +76,6 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
         if (res.ok) {
           const data = await res.json();
           setMessages(data.chat?.messages || []);
-          setCurrentMode(data.chat?.mode || "LISTENING");
           setTimeout(scrollToBottom, 100);
         }
       } catch (err) {
@@ -96,7 +93,7 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
       const res = await fetch("/api/ai/chats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Новый разговор", mode: currentMode }),
+        body: JSON.stringify({ title: "Новый разговор", mode: "LISTENING" }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -147,19 +144,7 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
     }
   };
 
-  // 6. Change mode
-  const handleModeChange = async (mode: AIMode) => {
-    setCurrentMode(mode);
-    if (activeThreadId) {
-      fetch(`/api/ai/chats/${activeThreadId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode }),
-      });
-    }
-  };
-
-  // 7. Send user message
+  // 6. Send user message in the app's single listening mode
   const handleSendMessage = async (text: string) => {
     if (!activeThreadId) return;
 
@@ -178,7 +163,7 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
       const res = await fetch(`/api/ai/chats/${activeThreadId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: text, mode: currentMode }),
+        body: JSON.stringify({ content: text, mode: "LISTENING" }),
       });
 
       if (res.ok) {
@@ -222,10 +207,10 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
 
   return (
     <div className="flex flex-col h-full w-full max-w-5xl mx-auto px-2 md:px-6 select-text">
-      {/* Top Thread Controls & Mode Selector */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-2 border-b border-white/10 select-none">
+      {/* Top Thread Controls */}
+      <div className="flex items-center gap-2 pb-3 mb-2 border-b border-white/10 select-none">
         {/* Threads Selector */}
-        <div className="flex items-center gap-2 overflow-x-auto max-w-[65%] py-1">
+        <div className="flex items-center gap-2 overflow-x-auto w-full py-1">
           <button
             onClick={createNewChat}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-xs text-blue-100 transition-colors flex-shrink-0"
@@ -285,42 +270,6 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
           ))}
         </div>
 
-        {/* Mode Selector */}
-        <div className="flex items-center gap-1 bg-[#101e3d]/60 p-1 rounded-full border border-white/10 text-[11px]">
-          <button
-            onClick={() => handleModeChange("LISTENING")}
-            className={`px-2.5 py-1 rounded-full transition-colors ${
-              currentMode === "LISTENING"
-                ? "bg-blue-500/30 text-white font-medium"
-                : "text-blue-300/70 hover:text-white"
-            }`}
-            title="Минимум советов, максимум бережного выслушивания"
-          >
-            Слушание
-          </button>
-          <button
-            onClick={() => handleModeChange("REFLECTION")}
-            className={`px-2.5 py-1 rounded-full transition-colors ${
-              currentMode === "REFLECTION"
-                ? "bg-blue-500/30 text-white font-medium"
-                : "text-blue-300/70 hover:text-white"
-            }`}
-            title="Помощь в распутывании мыслей"
-          >
-            Осмысление
-          </button>
-          <button
-            onClick={() => handleModeChange("ADVICE")}
-            className={`px-2.5 py-1 rounded-full transition-colors ${
-              currentMode === "ADVICE"
-                ? "bg-blue-500/30 text-white font-medium"
-                : "text-blue-300/70 hover:text-white"
-            }`}
-            title="Мягкие практические варианты действий"
-          >
-            Совет
-          </button>
-        </div>
       </div>
 
       {/* Main Chat Scroll Container */}
@@ -392,3 +341,4 @@ export function AIChatView({ onRequestHuman }: AIChatViewProps) {
     </div>
   );
 }
+
