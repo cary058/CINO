@@ -113,7 +113,7 @@ AI_PROVIDER=mock
 # 2. Google Gemini API
 AI_PROVIDER=gemini
 AI_API_KEY=your_gemini_api_key_here
-AI_MODEL=gemini-1.5-flash
+AI_MODEL=gemini-3.8-flash
 
 # 3. OpenAI API
 AI_PROVIDER=openai
