@@ -7,13 +7,13 @@ const secret = configuredSecret
 const appUrl = (process.env.APP_URL || "").replace(/\/$/, "");
 
 if (!token || !secret || !appUrl) {
-  console.error("Нужны TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET и APP_URL в локальном .env.");
-  process.exit(1);
+  console.warn("Telegram webhook пропущен: проверьте переменные бота в Render.");
+  process.exit(0);
 }
 
 if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) {
-  console.error("Не удалось подготовить секрет для webhook Telegram.");
-  process.exit(1);
+  console.warn("Telegram webhook пропущен: секрет не удалось подготовить.");
+  process.exit(0);
 }
 
 async function main() {
@@ -29,14 +29,13 @@ async function main() {
   });
   const result = await response.json();
   if (!response.ok || !result.ok) {
-    console.error("Telegram не принял адрес бота. Проверь адрес сайта и секреты в Render.");
-    process.exit(1);
+    console.error("Telegram не подключился:", result.description || `HTTP ${response.status}`);
+    return;
   }
   console.log(`Готово. Telegram подключён к ${appUrl}/api/telegram/webhook`);
 }
 
 main().catch(() => {
-  console.error("Не удалось связаться с Telegram. Проверь подключение к интернету.");
-  process.exit(1);
+  console.warn("Не удалось подключиться к Telegram; сайт продолжит запуск.");
 });
 
