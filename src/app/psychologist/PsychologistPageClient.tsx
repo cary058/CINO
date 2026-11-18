@@ -40,6 +40,14 @@ export default function PsychologistDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
   const [availabilityMessage, setAvailabilityMessage] = useState("");
+  const [professionalDetails, setProfessionalDetails] = useState({
+    displayName: "",
+    education: "",
+    qualification: "",
+    specializations: "",
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +63,14 @@ export default function PsychologistDashboardPage() {
         const data = await res.json();
         setProProfile(data.professional);
         setAvailability(data.professional?.availability || "OFFLINE");
+        if (data.professional) {
+          setProfessionalDetails({
+            displayName: data.professional.displayName || "",
+            education: data.professional.education || "",
+            qualification: data.professional.qualification || "",
+            specializations: data.professional.specializations || "",
+          });
+        }
       }
 
       const chatsRes = await fetch("/api/human/chats");
@@ -124,6 +140,27 @@ export default function PsychologistDashboardPage() {
       setAvailabilityMessage(err instanceof Error ? err.message : "Не удалось сохранить статус. Попробуйте ещё раз.");
     } finally {
       setIsSavingAvailability(false);
+    }
+  };
+
+  const handleProfileSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSavingProfile(true);
+    setProfileMessage("");
+    try {
+      const res = await fetch("/api/professional/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(professionalDetails),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Не удалось отправить профиль на проверку.");
+      setProProfile(data.profile);
+      setProfileMessage(data.message || "Профиль отправлен на проверку администратору.");
+    } catch (err) {
+      setProfileMessage(err instanceof Error ? err.message : "Не удалось сохранить профиль.");
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -237,6 +274,27 @@ export default function PsychologistDashboardPage() {
             </a>
           </div>
         </header>
+
+        {proProfile?.verificationStatus === "PENDING" && (
+          <form onSubmit={handleProfileSubmit} className="mb-3 rounded-2xl bg-[#101c38]/85 border border-amber-300/20 p-3 md:p-4 space-y-3">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Заполните профиль для проверки</h2>
+              <p className="mt-1 text-[11px] text-amber-100/70">Пока профиль не одобрен, направляющий видит статус, но не может назначить вас на обращение.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input required value={professionalDetails.displayName} onChange={(e) => setProfessionalDetails({ ...professionalDetails, displayName: e.target.value })} placeholder="Имя для кабинета" className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder-blue-200/40" />
+              <input required value={professionalDetails.education} onChange={(e) => setProfessionalDetails({ ...professionalDetails, education: e.target.value })} placeholder="Образование" className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder-blue-200/40" />
+              <input required value={professionalDetails.qualification} onChange={(e) => setProfessionalDetails({ ...professionalDetails, qualification: e.target.value })} placeholder="Квалификация" className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder-blue-200/40" />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <input value={professionalDetails.specializations} onChange={(e) => setProfessionalDetails({ ...professionalDetails, specializations: e.target.value })} placeholder="Специализации (необязательно)" className="min-w-56 flex-1 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder-blue-200/40" />
+              <button type="submit" disabled={isSavingProfile} className="rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 px-4 py-2 text-xs text-white font-semibold">
+                {isSavingProfile ? "Сохраняю…" : "Отправить на проверку"}
+              </button>
+            </div>
+            {profileMessage && <p role="status" className="text-xs text-amber-100">{profileMessage}</p>}
+          </form>
+        )}
 
         {/* Workspace */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden">
