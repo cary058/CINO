@@ -68,7 +68,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative flex h-screen w-screen overflow-hidden bg-[#091024] text-blue-100 font-sans">
+    <main className="relative flex h-[calc(100dvh-1.25rem)] w-screen overflow-hidden bg-[#091024] text-blue-100 font-sans">
       {/* Dynamic Starry Night Sky Background */}
       <StarBackground />
 
@@ -133,3 +133,4 @@ export default function HomePage() {
     </main>
   );
 }
+
