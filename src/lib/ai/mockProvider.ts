@@ -1,5 +1,6 @@
 import { AIProvider, AIGenerationRequest, AIGenerationResponse, AISafetyAnalysis } from "./types";
 import { analyzeMessageSafety } from "./safetyLayer";
+import { buildCrisisMessage, buildSafeFallback } from "./safetyResponses";
 import { AIMode } from "@/types";
 
 export class MockAIProvider implements AIProvider {
@@ -26,7 +27,7 @@ export class MockAIProvider implements AIProvider {
     // 1. Critical Crisis Intervention
     if (safety.isCrisis && (safety.riskLevel === "CRITICAL" || safety.riskLevel === "HIGH")) {
       return {
-        content: `Слышу, как невыносимо тяжело и больно тебе прямо сейчас. Твоя безопасность превыше всего. Пожалуйста, не оставайся наедине с этой болью в ближайшие минуты.\n\nЕсли ты чувствуешь прямую угрозу своей жизни, позвони в экстренную службу 112 (Казахстан) или на бесплатную круглосуточную линию доверия 150 / 111. Ты также можешь запросить живого человека в СИНО на соседней вкладке.`,
+        content: buildCrisisMessage(safety),
         safety,
         detectedMode,
         crisisData: {
@@ -34,6 +35,14 @@ export class MockAIProvider implements AIProvider {
           hotlineName: "Национальная линия доверия",
           hotlinePhone: "150",
         },
+      };
+    }
+
+    if (safety.isIntrusiveThought) {
+      return {
+        content: buildSafeFallback(safety),
+        safety,
+        detectedMode,
       };
     }
 
@@ -49,7 +58,7 @@ export class MockAIProvider implements AIProvider {
     // 3. Reassurance Loop Guardrail
     if (safety.isReassuranceLoop) {
       return {
-        content: `Я слышу, как сильно тебе хочется получить твердую гарантию того, что всё обойдётся. Страх неизвестности бывает очень выматывающим. К сожалению, никто не может пообещать будущее на 100%, и постоянный поиск заверений лишь временно глушит тревогу. Давай попробуем сделать глубокий спокойный вдох и посмотреть, что беспокоит тебя сильнее всего именно сейчас?`,
+        content: buildSafeFallback(safety),
         safety,
         detectedMode,
       };
