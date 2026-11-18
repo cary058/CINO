@@ -6,6 +6,7 @@ import { EarIcon } from "@/components/EarIcon";
 import { Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
+  const inviteToken = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("invite") : null;
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,6 +38,7 @@ export default function RegisterPage() {
           email,
           password,
           consents: ["TERMS", "PRIVACY", "AI_ACKNOWLEDGEMENT", "LIMITATIONS"],
+          inviteToken,
         }),
       });
 
@@ -46,7 +48,7 @@ export default function RegisterPage() {
         return;
       }
 
-      window.location.href = "/";
+      window.location.href = data.user.role === "PROFESSIONAL" ? "/psychologist" : "/";
     } catch (err) {
       setError("Ошибка сети. Попробуйте снова.");
     } finally {
@@ -67,7 +69,11 @@ export default function RegisterPage() {
           <p className="text-xs text-blue-200/70">Создание защищённого псевдонимного аккаунта</p>
         </div>
 
-        {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
+        {inviteToken ? (
+          <div className="rounded-xl border border-purple-300/30 bg-purple-400/10 p-3 text-[11px] leading-relaxed text-purple-100">
+            Это приглашение психолога. Зарегистрируйтесь на указанный адрес почты. Профиль будет ожидать проверки администратора, после неё можно будет принимать обращения.
+          </div>
+        ) : process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
           <div className="rounded-xl border border-amber-300/30 bg-amber-400/10 p-3 text-[11px] leading-relaxed text-amber-100">
             Это общедоступная демо-версия на зарубежном сервере. Введите только вымышленный email и псевдоним; не отправляйте реальные личные сведения и истории.
           </div>
