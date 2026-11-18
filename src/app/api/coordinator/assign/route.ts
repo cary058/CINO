@@ -50,7 +50,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Волонтёр не одобрен или сейчас недоступен." }, { status: 400 });
     }
 
-    if (helperRole === "PROFESSIONAL" && (!helper.professionalProfile || helper.professionalProfile.verificationStatus !== "VERIFIED" || helper.professionalProfile.availability !== "AVAILABLE")) {
+    const professionalIsEligible = helper.professionalProfile && (
+      helper.professionalProfile.verificationStatus === "VERIFIED" ||
+      (process.env.DEMO_MODE === "true" && helper.professionalProfile.verificationStatus === "DEMO_VERIFIED")
+    );
+    if (helperRole === "PROFESSIONAL" && (!professionalIsEligible || helper.professionalProfile?.availability !== "AVAILABLE")) {
       return NextResponse.json({ error: "Психолог не прошёл проверку или сейчас недоступен." }, { status: 400 });
     }
 
