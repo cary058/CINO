@@ -33,6 +33,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Обращение уже закрыто или у него нет чата." }, { status: 400 });
     }
 
+    if (request.userId === helperUserId) {
+      return NextResponse.json(
+        { error: "Нельзя назначить специалистом автора этого обращения. Для проверки используйте отдельный аккаунт пользователя." },
+        { status: 400 }
+      );
+    }
+
     const helper = await prisma.user.findUnique({
       where: { id: helperUserId },
       include: {
