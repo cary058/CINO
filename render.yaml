@@ -15,7 +15,7 @@ services:
       - key: NEXT_PUBLIC_DEMO_MODE
         value: "true"
       - key: AI_PROVIDER
-        value: mock
+        value: gemini
       - key: AI_MODEL
         value: gemini-3.8-flash
       - key: APP_URL
@@ -37,4 +37,3 @@ databases:
     user: sino_user
     plan: free
     region: frankfurt
-
