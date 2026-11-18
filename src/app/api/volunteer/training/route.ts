@@ -2,11 +2,12 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/rbac";
 
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    if (!user) {
+    if (!user || !hasPermission(user.role, "volunteer:training")) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
     }
 
@@ -57,3 +58,4 @@ export async function GET() {
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
+
