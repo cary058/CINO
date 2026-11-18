@@ -8,9 +8,9 @@ export function getAIProvider(): AIProvider {
 
   switch (providerName) {
     case "gemini":
-      return new GeminiAIProvider();
+      return process.env.AI_API_KEY?.trim() ? new GeminiAIProvider() : new MockAIProvider();
     case "openai":
-      return new OpenAIProvider();
+      return process.env.AI_API_KEY?.trim() ? new OpenAIProvider() : new MockAIProvider();
     case "mock":
     default:
       return new MockAIProvider();
