@@ -61,44 +61,73 @@ export class GeminiAIProvider implements AIProvider {
       parts: [{ text: request.userMessage }],
     });
 
-    try {
-      const url = `${this.baseUrl}/models/${this.model}:generateContent`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": this.apiKey },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 600,
-          },
-        }),
-      });
+    const configuredFallbacks = (process.env.AI_FALLBACK_MODELS || "gemini-3.5-flash-lite")
+      .split(",")
+      .map((modelName) => modelName.trim())
+      .filter(Boolean);
+    const models = [...new Set([this.model, ...configuredFallbacks])];
+    let lastFailure = "unknown error";
 
-      if (!res.ok) {
-        throw new Error(`Gemini API error: ${res.status} ${res.statusText}`);
+    for (const modelName of models) {
+      try {
+        const url = `${this.baseUrl}/models/${modelName}:generateContent`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": this.apiKey,
+          },
+          signal: AbortSignal.timeout(15000),
+          body: JSON.stringify({
+            contents,
+            systemInstruction: {
+              parts: [{ text: systemPrompt }],
+            },
+            generationConfig: {
+              maxOutputTokens: 600,
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          lastFailure = `HTTP ${res.status}`;
+          console.warn(`Gemini model ${modelName} returned ${lastFailure}; trying next model.`);
+          continue;
+        }
+
+        const data = await res.json();
+        const generatedText = data?.candidates?.[0]?.content?.parts
+          ?.map((part: { text?: string }) => part.text || "")
+          .join("")
+          .trim();
+
+        if (!generatedText) {
+          lastFailure = "empty response";
+          console.warn(`Gemini model ${modelName} returned no text; trying next model.`);
+          continue;
+        }
+
+        if (modelName !== this.model) {
+          console.info(`Gemini fallback model responded: ${modelName}`);
+        }
+
+        return {
+          content: generatedText,
+          safety,
+          detectedMode: mode,
+        };
+      } catch (err) {
+        lastFailure = err instanceof Error ? err.message : "network error";
+        console.warn(`Gemini model ${modelName} failed; trying next model.`, lastFailure);
       }
-
-      const data = await res.json();
-      const generatedText =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Я здесь и слушаю тебя. Что у тебя на душе?";
-
-      return {
-        content: generatedText,
-        safety,
-        detectedMode: mode,
-      };
-    } catch (err: any) {
-      console.error("Gemini provider failed, using safe fallback:", err.message);
-      return {
-        content: `Я внимательно тебя слушаю. Похоже, сейчас непростой период. Если захочешь, расскажи чуть больше.`,
-        safety,
-        detectedMode: mode,
-      };
     }
+
+    console.error(`All Gemini models failed (${models.join(", ")}): ${lastFailure}`);
+    return {
+      content: "Похоже, сейчас я не могу подключиться к помощнику. Твоё сообщение сохранено — попробуй отправить его ещё раз чуть позже.",
+      safety,
+      detectedMode: mode,
+    };
   }
 }
+
