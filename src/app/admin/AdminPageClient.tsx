@@ -178,7 +178,7 @@ export default function AdminPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setInviteResult(data.inviteLink);
+        setInviteResult(data.inviteLink || data.message);
         setInviteEmail("");
         loadData();
       } else {
@@ -620,7 +620,7 @@ export default function AdminPage() {
 
               {inviteResult && (
                 <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 select-all">
-                  <strong>Одноразовая ссылка для регистрации:</strong>
+                  <strong>{inviteResult.startsWith("http") ? "Одноразовая ссылка для регистрации:" : "Роль психолога назначена существующему аккаунту:"}</strong>
                   <p className="mt-1 font-mono text-xs">{inviteResult}</p>
                 </div>
               )}
