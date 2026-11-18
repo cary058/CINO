@@ -1,6 +1,7 @@
 import { AIProvider, AIGenerationRequest, AIGenerationResponse, AISafetyAnalysis } from "./types";
 import { analyzeMessageSafety } from "./safetyLayer";
 import { buildSystemPrompt } from "./promptEngine";
+import { buildCrisisMessage, buildSafeFallback } from "./safetyResponses";
 import { AIMode } from "@/types";
 
 export class GeminiAIProvider implements AIProvider {
@@ -26,7 +27,7 @@ export class GeminiAIProvider implements AIProvider {
     // If safety critical, return immediate safe protocol response
     if (safety.isCrisis && (safety.riskLevel === "CRITICAL" || safety.riskLevel === "HIGH")) {
       return {
-        content: `Слышу, как тяжело и больно тебе прямо сейчас. Твоя безопасность превыше всего. Пожалуйста, не оставайся наедине с этой болью в ближайшие минуты.\n\nПозвони в службу экстренной помощи 112 или на бесплатную линию доверия 150 / 111 (Казахстан). Ты также можешь запросить живого человека в СИНО на соседней вкладке.`,
+        content: buildCrisisMessage(safety),
         safety,
         detectedMode: mode,
         crisisData: {
@@ -124,7 +125,7 @@ export class GeminiAIProvider implements AIProvider {
 
     console.error(`All Gemini models failed (${models.join(", ")}): ${lastFailure}`);
     return {
-      content: "Похоже, сейчас я не могу подключиться к помощнику. Твоё сообщение сохранено — попробуй отправить его ещё раз чуть позже.",
+      content: buildSafeFallback(safety),
       safety,
       detectedMode: mode,
     };
