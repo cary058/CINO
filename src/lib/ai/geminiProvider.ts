@@ -65,7 +65,7 @@ export class GeminiAIProvider implements AIProvider {
       .split(",")
       .map((modelName) => modelName.trim())
       .filter(Boolean);
-    const models = [...new Set([this.model, ...configuredFallbacks])];
+    const models = Array.from(new Set([this.model, ...configuredFallbacks]));
     let lastFailure = "unknown error";
 
     for (const modelName of models) {
