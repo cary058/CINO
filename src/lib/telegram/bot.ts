@@ -51,7 +51,7 @@ async function getOrCreateUser(chatId: string) {
 }
 
 const menu = [[
-  { text: "💬 Поговорить", callback_data: "talk" },
+  { text: "💬 Вернуться к ИИ (отменить запрос)", callback_data: "talk" },
   { text: "🤝 Позвать человека", callback_data: "human" },
 ]];
 
@@ -105,6 +105,34 @@ export async function handleTelegramUpdate(update: any) {
       await getOrCreateUser(chatId);
       await sendTelegramMessage(chatId, "Спасибо. Это демонстрация: используй только вымышленные данные. Напиши сообщение — я отвечу, или выбери действие:", menu);
     } else if (data === "talk") {
+      const user = await prisma.user.findUnique({ where: { telegramChatId: chatId } });
+      const activeRequest = user
+        ? await prisma.humanSupportRequest.findFirst({
+            where: {
+              userId: user.id,
+              status: { in: ["REQUESTED", "QUEUED", "UNDER_REVIEW", "ASSIGNED", "ACTIVE", "TRANSFERRED"] },
+            },
+            include: { chat: true },
+            orderBy: { createdAt: "desc" },
+          })
+        : null;
+
+      if (activeRequest) {
+        const closedAt = new Date();
+        await prisma.humanSupportRequest.update({
+          where: { id: activeRequest.id },
+          data: { status: "CANCELLED", closedAt },
+        });
+        if (activeRequest.chat) {
+          await prisma.humanChat.update({
+            where: { id: activeRequest.chat.id },
+            data: { status: "CLOSED", closedAt },
+          });
+        }
+        await sendTelegramMessage(chatId, "Запрос к человеку отменён. Теперь можешь писать сюда — я отвечу как ИИ. Если позже захочешь поговорить с человеком, нажми «Позвать человека».", menu);
+        return;
+      }
+
       await sendTelegramMessage(chatId, "Напиши, что у тебя на душе. Это демонстрационная поддержка на базе встроенного ИИ.");
     } else if (data === "human") {
       const user = await getOrCreateUser(chatId);
