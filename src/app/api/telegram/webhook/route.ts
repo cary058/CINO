@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleTelegramUpdate } from "@/lib/telegram/bot";
+import { getTelegramWebhookSecret, handleTelegramUpdate } from "@/lib/telegram/bot";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const secret = getTelegramWebhookSecret();
   if (!secret || request.headers.get("x-telegram-bot-api-secret-token") !== secret) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }

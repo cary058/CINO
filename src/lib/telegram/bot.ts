@@ -1,9 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai/factory";
-import { randomBytes, randomUUID } from "crypto";
+import { createHash, randomBytes, randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 
 type TelegramButton = { text: string; callback_data: string };
+
+export function getTelegramWebhookSecret() {
+  const configured = process.env.TELEGRAM_WEBHOOK_SECRET;
+  return configured ? createHash("sha256").update(configured).digest("base64url") : null;
+}
 
 async function telegram(method: string, body: Record<string, unknown>) {
   const token = process.env.TELEGRAM_BOT_TOKEN;

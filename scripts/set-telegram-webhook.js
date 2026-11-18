@@ -1,5 +1,9 @@
+const { createHash } = require('node:crypto');
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+const configuredSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+const secret = configuredSecret
+  ? createHash('sha256').update(configuredSecret).digest('base64url')
+  : '';
 const appUrl = (process.env.APP_URL || "").replace(/\/$/, "");
 
 if (!token || !secret || !appUrl) {
@@ -7,8 +11,8 @@ if (!token || !secret || !appUrl) {
   process.exit(1);
 }
 
-if (!/^[A-Za-z0-9_-]{32,64}$/.test(secret)) {
-  console.error("TELEGRAM_WEBHOOK_SECRET должен содержать 32–64 символа: латинские буквы, цифры, _ или -.");
+if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) {
+  console.error("Не удалось подготовить секрет для webhook Telegram.");
   process.exit(1);
 }
 

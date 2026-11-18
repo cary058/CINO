@@ -17,7 +17,7 @@ services:
       - key: AI_PROVIDER
         value: mock
       - key: APP_URL
-        value: https://sino-demo.onrender.com
+        value: https://sino-demo-xe1r.onrender.com
       - key: SESSION_SECRET
         generateValue: true
       - key: DATABASE_URL
