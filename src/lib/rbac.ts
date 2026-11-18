@@ -60,6 +60,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "chat:ai",
     "chat:request_human",
     "volunteer:dashboard",
+    "volunteer:training",
     "coordinator:dashboard",
     "coordinator:assign",
     "professional:dashboard",
@@ -87,3 +88,4 @@ export function isStaff(role: UserRole): boolean {
 export function isAdminOrSuperAdmin(role: UserRole): boolean {
   return ["ADMIN", "SUPER_ADMIN"].includes(role);
 }
+
