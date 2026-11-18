@@ -3,13 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAuditEvent } from "@/lib/audit";
+import { hasPermission } from "@/lib/rbac";
 
 export async function POST(req: NextRequest) {
   try {
-    if (process.env.NODE_ENV === "production" && process.env.DEMO_MODE === "true") {
-      return NextResponse.json({ error: "Приём заявок временно закрыт. Роли назначает администратор." }, { status: 403 });
-    }
-
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
@@ -17,6 +14,16 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { displayName, education, qualification, specializations, registrationIdentifier } = body;
+
+    if (process.env.NODE_ENV === "production" && process.env.DEMO_MODE === "true") {
+      if (!hasPermission(user.role, "professional:dashboard")) {
+        return NextResponse.json({ error: "Это приглашение не назначает роль психолога." }, { status: 403 });
+      }
+      const existingProfile = await prisma.professionalProfile.findUnique({ where: { userId: user.id } });
+      if (!existingProfile || existingProfile.verificationStatus !== "PENDING") {
+        return NextResponse.json({ error: "Заполнить можно только профиль, ожидающий проверки." }, { status: 403 });
+      }
+    }
 
     if (!displayName || !education || !qualification) {
       return NextResponse.json(
