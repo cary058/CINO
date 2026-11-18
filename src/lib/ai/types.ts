@@ -7,6 +7,7 @@ export interface AISafetyAnalysis {
   isCrisis: boolean;
   isParanoiaOrDelusion: boolean;
   isReassuranceLoop: boolean;
+  isIntrusiveThought?: boolean;
   crisisRecommendedAction?: "SHOW_CRISIS_HOTLINES" | "OFFER_HUMAN_SUPPORT" | "EMERGENCY_SERVICES";
 }
 
@@ -37,3 +38,4 @@ export interface AIProvider {
   generateResponse(request: AIGenerationRequest): Promise<AIGenerationResponse>;
   classifySafety(message: string, history: ChatMessageContext[]): Promise<AISafetyAnalysis>;
 }
+
