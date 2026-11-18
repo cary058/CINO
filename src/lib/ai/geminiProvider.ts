@@ -11,7 +11,7 @@ export class GeminiAIProvider implements AIProvider {
 
   constructor(apiKey?: string, model?: string, baseUrl?: string) {
     this.apiKey = apiKey || process.env.AI_API_KEY || "";
-    this.model = model || process.env.AI_MODEL || "gemini-1.5-flash";
+    this.model = model || process.env.AI_MODEL || "gemini-3.8-flash";
     this.baseUrl = baseUrl || process.env.AI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta";
   }
 
@@ -62,10 +62,10 @@ export class GeminiAIProvider implements AIProvider {
     });
 
     try {
-      const url = `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`;
+      const url = `${this.baseUrl}/models/${this.model}:generateContent`;
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": this.apiKey },
         body: JSON.stringify({
           contents,
           systemInstruction: {
