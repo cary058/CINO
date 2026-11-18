@@ -48,6 +48,7 @@ export function CoordinatorChatView({ user }: CoordinatorChatViewProps) {
   const [reason, setReason] = useState("");
   const [category, setCategory] = useState<HumanRequestCategory>("DONT_KNOW");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -99,6 +100,7 @@ export function CoordinatorChatView({ user }: CoordinatorChatViewProps) {
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setRequestError("");
     try {
       const res = await fetch("/api/human-requests", {
         method: "POST",
@@ -106,12 +108,17 @@ export function CoordinatorChatView({ user }: CoordinatorChatViewProps) {
         body: JSON.stringify({ reason, category }),
       });
       if (res.ok) {
-        const data = await res.json();
+        await res.json();
         setShowRequestModal(false);
-        loadActiveRequest();
+        setReason("");
+        await loadActiveRequest();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setRequestError(data.error || "Не получилось отправить обращение. Попробуйте ещё раз.");
       }
     } catch (err) {
       console.error("Error submitting human request:", err);
+      setRequestError("Нет связи с сервером. Обращение не отправлено; проверьте интернет и попробуйте ещё раз.");
     } finally {
       setIsSubmitting(false);
     }
@@ -267,6 +274,11 @@ export function CoordinatorChatView({ user }: CoordinatorChatViewProps) {
             </p>
 
             <form onSubmit={handleCreateRequest} className="space-y-4 text-xs">
+              {requestError && (
+                <p role="alert" className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-red-200">
+                  {requestError}
+                </p>
+              )}
               <div>
                 <label className="block text-blue-200 font-medium mb-1.5">Что сейчас происходит?</label>
                 <textarea
@@ -333,3 +345,4 @@ export function CoordinatorChatView({ user }: CoordinatorChatViewProps) {
     </div>
   );
 }
+
