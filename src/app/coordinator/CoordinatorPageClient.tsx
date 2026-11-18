@@ -214,7 +214,7 @@ export default function CoordinatorPage() {
                 <p>Все обращения обработаны.</p>
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
                 {requests.map((req) => (
                   <div
                     key={req.id}
@@ -248,6 +248,34 @@ export default function CoordinatorPage() {
                 ))}
               </div>
             )}
+
+            <section className="mt-4 pt-4 border-t border-white/10 shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-white">Статус психологов</h4>
+                <span className="text-[10px] text-blue-200/50">обновляется автоматически</span>
+              </div>
+              {professionals.length === 0 ? (
+                <p className="text-[11px] text-blue-300/50">Пока нет подключённых психологов.</p>
+              ) : (
+                <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1">
+                  {professionals.map((pro) => (
+                    <div key={pro.id} className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-2.5 py-2">
+                      <span className="text-[11px] text-blue-100 truncate">{pro.displayName}</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
+                        pro.availability === "AVAILABLE"
+                          ? "bg-emerald-500/15 text-emerald-300"
+                          : pro.availability === "BUSY"
+                            ? "bg-amber-500/15 text-amber-300"
+                            : "bg-white/10 text-blue-200/60"
+                      }`}>
+                        {pro.verificationStatus === "DEMO_VERIFIED" ? "Демо · " : ""}
+                        {pro.availability === "AVAILABLE" ? "Свободен" : pro.availability === "BUSY" ? "Занят" : pro.availability === "PAUSED" ? "Пауза" : "Не на смене"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
 
           {/* Right: Triaging & Assignment Center */}
