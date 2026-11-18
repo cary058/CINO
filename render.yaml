@@ -21,9 +21,18 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: sino-demo-db
+          property: connectionString
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET
-        sync: false
+        generateValue: true
+
+databases:
+  - name: sino-demo-db
+    databaseName: sino_demo
+    user: sino_user
+    plan: free
+    region: frankfurt
 
