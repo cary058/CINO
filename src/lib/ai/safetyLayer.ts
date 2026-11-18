@@ -7,6 +7,14 @@ export function analyzeMessageSafety(
 ): AISafetyAnalysis {
   const text = message.toLowerCase().trim();
   const triggers: string[] = [];
+  const intrusiveThoughtRegex =
+    /(навязчив(?:ые|ая|ый|о)? мысли?|назойлив(?:ые|ая|ый|о)? мысли?|мысл(?:ь|и).{0,40}(?:не отпускает|не отпускают|крутится|крутятся|возвращается|возвращаются|зациклил)|мысл(?:ь|и).{0,80}(?:суицид|самоубийств|покончить с собой|убить себя|навредить себе|причинить вред|убить кого-то|ударить близкого)|не могу перестать думать|страшно от (?:этой )?мысли|а вдруг я.{0,50}(?:наврежу|причиню вред|ударю|убью))/i;
+  const recentUserMessages = history
+    .filter((item) => item.role === "user")
+    .slice(-2)
+    .map((item) => item.content.toLowerCase());
+  const isIntrusiveThought =
+    intrusiveThoughtRegex.test(text) || recentUserMessages.some((item) => intrusiveThoughtRegex.test(item));
 
   // 1. Suicide / Self-Harm (CRITICAL / HIGH)
   const suicideRegex = /(хочу умереть|покончить с собой|суицид|не хочу жить|убить себя|наложить на себя руки|спрыгнуть с|порезать вены|перерезать вены|выпить таблеток чтобы умереть|вскрыть вены)/i;
@@ -21,6 +29,7 @@ export function analyzeMessageSafety(
       isCrisis: true,
       isParanoiaOrDelusion: false,
       isReassuranceLoop: false,
+      isIntrusiveThought,
       crisisRecommendedAction: "EMERGENCY_SERVICES",
     };
   }
@@ -34,6 +43,7 @@ export function analyzeMessageSafety(
       isCrisis: true,
       isParanoiaOrDelusion: false,
       isReassuranceLoop: false,
+      isIntrusiveThought,
       crisisRecommendedAction: "OFFER_HUMAN_SUPPORT",
     };
   }
@@ -49,6 +59,7 @@ export function analyzeMessageSafety(
       isCrisis: true,
       isParanoiaOrDelusion: false,
       isReassuranceLoop: false,
+      isIntrusiveThought,
       crisisRecommendedAction: "EMERGENCY_SERVICES",
     };
   }
@@ -64,16 +75,19 @@ export function analyzeMessageSafety(
       isCrisis: true,
       isParanoiaOrDelusion: false,
       isReassuranceLoop: false,
+      isIntrusiveThought,
       crisisRecommendedAction: "SHOW_CRISIS_HOTLINES",
     };
   }
 
   // 4. Paranoia / Delusional Themes
-  const paranoiaRegex = /(за мной следят|чип в голове|спецслужбы в стенах|соседи облучают|все против меня заговор|слышу голоса в голове которые приказывают|вживили жучки)/i;
+  const paranoiaRegex =
+    /(за мной следят|за мной наблюдают|соседи (?:следят|облучают|отравляют)|(?:все|всё) против меня сговорились|(?:чип|жучок|микрофон) (?:в голове|в теле|вживили)|слышу голоса.{0,40}(?:приказывают|говорят сделать))/i;
   const isParanoiaOrDelusion = paranoiaRegex.test(text);
 
   // 5. Reassurance loop detector
-  const reassuranceRegex = /(точно всё будет хорошо|точно я не умру|скажи точно|поклянись|гарантируй|точно ничего.*не случится|точно.*обоSource:?йдется)/i;
+  const reassuranceRegex =
+    /(скажи.{0,20}точно|точно ли|точно (?:всё|все|ничего|я не)|поклянись|гарантируй|обещай.{0,20}(?:что|не)|точно ничего.{0,20}не случится|проверь.{0,20}(?:ещё раз|еще раз|снова|опять)|не опасно ли|а вдруг.{0,40}(?:случится|значит|я не))/i;
   let isReassuranceLoop = false;
   if (reassuranceRegex.test(text)) {
     const recentReassurances = history
@@ -95,6 +109,7 @@ export function analyzeMessageSafety(
       isCrisis: false,
       isParanoiaOrDelusion,
       isReassuranceLoop,
+      isIntrusiveThought,
       crisisRecommendedAction: "OFFER_HUMAN_SUPPORT",
     };
   }
@@ -109,6 +124,7 @@ export function analyzeMessageSafety(
       isCrisis: false,
       isParanoiaOrDelusion,
       isReassuranceLoop,
+      isIntrusiveThought,
     };
   }
 
@@ -121,6 +137,7 @@ export function analyzeMessageSafety(
       isCrisis: false,
       isParanoiaOrDelusion,
       isReassuranceLoop,
+      isIntrusiveThought,
     };
   }
 
@@ -132,6 +149,7 @@ export function analyzeMessageSafety(
       isCrisis: false,
       isParanoiaOrDelusion: true,
       isReassuranceLoop,
+      isIntrusiveThought,
     };
   }
 
@@ -142,5 +160,7 @@ export function analyzeMessageSafety(
     isCrisis: false,
     isParanoiaOrDelusion: false,
     isReassuranceLoop: isReassuranceLoop,
+    isIntrusiveThought,
   };
 }
+
