@@ -49,8 +49,44 @@ export async function POST(req: NextRequest) {
     if (process.env.NODE_ENV === "production" && !isStaffAccessAllowed(normalizedEmail)) {
       return NextResponse.json({ error: "Сначала администратор должен разрешить этому адресу служебный доступ." }, { status: 403 });
     }
-    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      include: { professionalProfile: true },
+    });
     if (existingUser) {
+      if (role === "PROFESSIONAL" && existingUser.role === "USER" && !existingUser.professionalProfile) {
+        const professional = await prisma.$transaction(async (tx) => {
+          const updatedUser = await tx.user.update({
+            where: { id: existingUser.id },
+            data: { role: "PROFESSIONAL" },
+          });
+          const profile = await tx.professionalProfile.create({
+            data: {
+              userId: updatedUser.id,
+              displayName: "Психолог",
+              education: "Ожидает заполнения",
+              qualification: "Ожидает проверки администратором",
+              verificationStatus: "PENDING",
+              availability: "OFFLINE",
+            },
+          });
+          return profile;
+        });
+
+        await logAuditEvent({
+          actorUserId: user.id,
+          action: "PROMOTE_EXISTING_USER_TO_PROFESSIONAL",
+          targetType: "ProfessionalProfile",
+          targetId: professional.id,
+          metadata: { email: normalizedEmail, verificationStatus: "PENDING" },
+        });
+
+        return NextResponse.json({
+          success: true,
+          existingAccount: true,
+          message: "Роль психолога назначена существующему аккаунту. Войдите с прежним паролем и заполните анкету. До проверки квалификации обращения назначать нельзя.",
+        });
+      }
       return NextResponse.json({ error: "Для этого адреса уже создан аккаунт." }, { status: 409 });
     }
 
