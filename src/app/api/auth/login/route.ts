@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, createSessionToken, setSessionCookie } from "@/lib/auth";
+import { verifyPassword, createSessionToken, setSessionCookie, isStaffAccessAllowed } from "@/lib/auth";
+import { isStaff } from "@/lib/rbac";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { logAuditEvent } from "@/lib/audit";
 
@@ -61,6 +62,10 @@ export async function POST(req: NextRequest) {
         { error: "Неверный email или пароль." },
         { status: 401 }
       );
+    }
+
+    if (isStaff(user.role as any) && !isStaffAccessAllowed(user.email)) {
+      return NextResponse.json({ error: "Доступ к служебному кабинету пока не назначен." }, { status: 403 });
     }
 
     const token = await createSessionToken(user.id);
