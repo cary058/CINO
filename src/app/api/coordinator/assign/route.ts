@@ -29,6 +29,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Обращение не найдено" }, { status: 404 });
     }
 
+    if (!request.chat || request.status === "CLOSED") {
+      return NextResponse.json({ error: "Обращение уже закрыто или у него нет чата." }, { status: 400 });
+    }
+
     const helper = await prisma.user.findUnique({
       where: { id: helperUserId },
       include: {
@@ -40,6 +44,18 @@ export async function POST(req: NextRequest) {
 
     if (!helper || helper.status !== "ACTIVE") {
       return NextResponse.json({ error: "Выбранный специалист недоступен" }, { status: 400 });
+    }
+
+    if (helperRole === "VOLUNTEER" && (!helper.volunteerProfile || helper.volunteerProfile.status !== "APPROVED" || helper.volunteerProfile.availability !== "AVAILABLE")) {
+      return NextResponse.json({ error: "Волонтёр не одобрен или сейчас недоступен." }, { status: 400 });
+    }
+
+    if (helperRole === "PROFESSIONAL" && (!helper.professionalProfile || helper.professionalProfile.verificationStatus !== "VERIFIED" || helper.professionalProfile.availability !== "AVAILABLE")) {
+      return NextResponse.json({ error: "Психолог не прошёл проверку или сейчас недоступен." }, { status: 400 });
+    }
+
+    if (helperRole !== "VOLUNTEER" && helperRole !== "PROFESSIONAL") {
+      return NextResponse.json({ error: "Неизвестная роль специалиста." }, { status: 400 });
     }
 
     // Check capacity
@@ -127,3 +143,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ошибка при назначении" }, { status: 500 });
   }
 }
+
