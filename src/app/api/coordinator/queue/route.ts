@@ -67,11 +67,14 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // 3. Fetch available verified professionals
-    const availableProfessionals = await prisma.professionalProfile.findMany({
+    // Show every verified professional so the coordinator can see who is free,
+    // busy, or off shift. Demo profiles are only included in demo deployments.
+    const verificationStatuses = process.env.DEMO_MODE === "true"
+      ? ["VERIFIED", "DEMO_VERIFIED"]
+      : ["VERIFIED"];
+    const professionals = await prisma.professionalProfile.findMany({
       where: {
-        verificationStatus: "VERIFIED",
-        availability: "AVAILABLE",
+        verificationStatus: { in: verificationStatuses },
       },
       include: {
         user: {
@@ -87,10 +90,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       requests,
       availableVolunteers,
-      availableProfessionals,
+      professionals,
     });
   } catch (error) {
     console.error("Error fetching coordinator queue:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
+
