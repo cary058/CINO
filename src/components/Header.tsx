@@ -2,7 +2,6 @@
 
 import React from "react";
 import { User as UserIcon, Menu, Bell } from "lucide-react";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { SessionUser } from "@/types";
 import { EarIcon } from "./EarIcon";
 
@@ -36,8 +35,6 @@ export function Header({ user, onOpenProfile, onToggleMobileNav }: HeaderProps) 
 
       {/* Top Right Controls */}
       <div className="flex items-center gap-3">
-        <ThemeSwitcher />
-
         {user ? (
           <button
             onClick={onOpenProfile}
@@ -59,3 +56,4 @@ export function Header({ user, onOpenProfile, onToggleMobileNav }: HeaderProps) 
     </header>
   );
 }
+
