@@ -37,11 +37,6 @@ export default function LoginPage() {
     }
   };
 
-  const fillDevAccount = (devEmail: string) => {
-    setEmail(devEmail);
-    setPassword("Password123!");
-  };
-
   return (
     <main className="relative flex min-h-screen w-screen items-center justify-center p-4 bg-[#091024] text-blue-100 font-sans">
       <StarBackground />
@@ -102,29 +97,6 @@ export default function LoginPage() {
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        {/* Quick Dev Login Helpers */}
-        {(process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true") && <div className="pt-4 border-t border-white/10 space-y-2">
-          <p className="text-[11px] text-blue-300/80 font-medium">Демо-доступы для проверки ролей (пароль у всех: Password123!):</p>
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { label: "Пользователь", email: "user@sino.kz" },
-              { label: "Направляющий", email: "coordinator@sino.kz" },
-              { label: "Волонтёр", email: "volunteer1@sino.kz" },
-              { label: "Психолог", email: "psychologist@sino.kz" },
-              { label: "Админ", email: "admin@sino.kz" },
-            ].map((d) => (
-              <button
-                key={d.email}
-                type="button"
-                onClick={() => fillDevAccount(d.email)}
-                className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] text-blue-200 border border-white/5 transition-colors"
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </div>}
 
         <div className="text-center text-xs text-blue-300/70 pt-1">
           Нет профиля?{" "}
