@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { detectPersonalContacts } from "@/lib/moderation/contactDetector";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { realtimeBus } from "@/lib/realtime/eventBus";
+import { sendTelegramMessage } from "@/lib/telegram/bot";
 
 export async function POST(
   req: NextRequest,
@@ -82,6 +83,18 @@ export async function POST(
       });
     }
 
+    // Deliver coordinator/helper replies to demo users who started in Telegram.
+    if (user.id !== chat.userId) {
+      const recipient = await prisma.user.findUnique({ where: { id: chat.userId }, select: { telegramChatId: true } });
+      if (recipient?.telegramChatId) {
+        try {
+          await sendTelegramMessage(recipient.telegramChatId, `Ответ координатора:\n\n${messageText}`);
+        } catch (telegramError) {
+          console.error("Could not deliver Telegram human-support reply", telegramError);
+        }
+      }
+    }
+
     // Broadcast on chat channel
     realtimeBus.emit(`human_chat:${chat.id}`, "message", {
       message: savedMessage,
@@ -97,3 +110,4 @@ export async function POST(
     return NextResponse.json({ error: "Не удалось отправить сообщение" }, { status: 500 });
   }
 }
+

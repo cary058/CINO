@@ -1,32 +1,58 @@
-version: "3.8"
-
 services:
   sino-app:
     build: .
     container_name: sino_web
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://sino_user:sino_password@postgres:5432/sino_db?schema=public
-      - SESSION_SECRET=change-this-to-a-very-long-and-secure-random-string-min-32-chars
-      - AI_PROVIDER=mock
+      NODE_ENV: production
+      PORT: 3000
+      APP_URL: ${APP_URL:?Set APP_URL in .env}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+    expose:
+      - "3000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: sino_caddy
+    restart: unless-stopped
+    environment:
+      APP_HOST: ${APP_HOST:?Set APP_HOST in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - sino-app
 
   postgres:
     image: postgres:16-alpine
     container_name: sino_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: sino_user
-      POSTGRES_PASSWORD: sino_password
-      POSTGRES_DB: sino_db
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
+

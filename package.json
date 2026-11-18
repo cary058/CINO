@@ -5,14 +5,19 @@
   "description": "СИНО — сервис эмоциональной поддержки: слушаем и не осуждаем",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node scripts/check-prisma-schemas.js && prisma generate --schema=prisma/schema.postgres.prisma && next build",
     "start": "next start",
+    "start:demo": "npm run prisma:push:production && npm run prisma:seed && next start -H 0.0.0.0",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:seed": "node prisma/seed.js"
+    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
+    "prisma:generate:production": "prisma generate --schema=prisma/schema.postgres.prisma",
+    "prisma:push": "prisma db push --schema=prisma/schema.prisma",
+    "prisma:push:production": "prisma db push --schema=prisma/schema.postgres.prisma",
+    "prisma:seed": "node prisma/seed.js",
+    "admin:bootstrap": "node prisma/bootstrap-admin.js",
+    "telegram:set-webhook": "node scripts/set-telegram-webhook.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -40,3 +45,4 @@
     "vitest": "^2.1.8"
   }
 }
+

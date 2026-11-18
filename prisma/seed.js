@@ -4,6 +4,9 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' && process.env.DEMO_MODE !== 'true') {
+    throw new Error('The shared demo accounts can only be seeded in production when DEMO_MODE=true.');
+  }
   console.log('🌱 Seeding SINO database...');
 
   // Common dev password: "Password123!"
@@ -585,3 +588,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

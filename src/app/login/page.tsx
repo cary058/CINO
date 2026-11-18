@@ -104,8 +104,8 @@ export default function LoginPage() {
         </form>
 
         {/* Quick Dev Login Helpers */}
-        <div className="pt-4 border-t border-white/10 space-y-2">
-          <p className="text-[11px] text-blue-300/60 font-medium">Быстрый вход для тестирования ролей:</p>
+        {(process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEMO_MODE === "true") && <div className="pt-4 border-t border-white/10 space-y-2">
+          <p className="text-[11px] text-blue-300/80 font-medium">Демо-доступы для проверки ролей (пароль у всех: Password123!):</p>
           <div className="flex flex-wrap gap-1.5">
             {[
               { label: "Пользователь", email: "user@sino.kz" },
@@ -124,7 +124,7 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
         <div className="text-center text-xs text-blue-300/70 pt-1">
           Нет профиля?{" "}
@@ -136,3 +136,4 @@ export default function LoginPage() {
     </main>
   );
 }
+

@@ -15,6 +15,7 @@ model User {
   status           String    @default("ACTIVE") // ACTIVE, SUSPENDED, DELETED
   isEmailVerified  Boolean   @default(true)
   anonymousId      String    @unique // e.g. SINO-8F42A1
+  telegramChatId   String?   @unique
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
@@ -379,3 +380,4 @@ model Invitation {
   @@index([email])
   @@index([token])
 }
+

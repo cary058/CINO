@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       action: "REGISTER",
       targetType: "User",
       targetId: user.id,
-      ipAddress: ip,
+      ipAddress: process.env.DEMO_MODE === "true" ? undefined : ip,
     });
 
     return NextResponse.json({
@@ -116,3 +116,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

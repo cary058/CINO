@@ -4,9 +4,16 @@ import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import { SessionUser, UserRole, UserStatus } from "@/types";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET || "sino-default-session-secret-change-in-production-min-32-chars"
-);
+function getJwtSecret() {
+  const secret = process.env.SESSION_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    if (!secret || secret.length < 32 || /change|replace|example|sino-(default|super-secret)|your[-_]/i.test(secret)) {
+      throw new Error("SESSION_SECRET must be a unique secret of at least 32 characters in production.");
+    }
+    return new TextEncoder().encode(secret);
+  }
+  return new TextEncoder().encode(secret || "sino-local-development-secret-not-for-production");
+}
 const COOKIE_NAME = "sino_session";
 
 export async function hashPassword(password: string): Promise<string> {
@@ -31,12 +38,12 @@ export async function createSessionToken(userId: string): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function verifySessionToken(token: string): Promise<{ userId: string } | null> {
   try {
-    const verified = await jwtVerify(token, JWT_SECRET);
+    const verified = await jwtVerify(token, getJwtSecret());
     return { userId: verified.payload.userId as string };
   } catch {
     return null;
@@ -124,3 +131,4 @@ export function deleteSessionCookie() {
   const cookieStore = cookies();
   cookieStore.delete(COOKIE_NAME);
 }
+

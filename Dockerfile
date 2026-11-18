@@ -12,7 +12,6 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate
 RUN npm run build
 
 # Production runner
@@ -31,3 +30,4 @@ COPY --from=builder /app/prisma ./prisma
 EXPOSE 3000
 
 CMD ["npm", "start"]
+

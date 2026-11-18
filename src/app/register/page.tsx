@@ -67,6 +67,12 @@ export default function RegisterPage() {
           <p className="text-xs text-blue-200/70">Создание защищённого псевдонимного аккаунта</p>
         </div>
 
+        {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
+          <div className="rounded-xl border border-amber-300/30 bg-amber-400/10 p-3 text-[11px] leading-relaxed text-amber-100">
+            Это общедоступная демо-версия на зарубежном сервере. Введите только вымышленный email и псевдоним; не отправляйте реальные личные сведения и истории.
+          </div>
+        )}
+
         {error && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-400/20 text-xs text-red-200">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -158,3 +164,4 @@ export default function RegisterPage() {
     </main>
   );
 }
+
